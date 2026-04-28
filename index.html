@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- PWA / iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Стрельба">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080a08">
+<meta name="application-name" content="Таблицы Стрельбы">
+<meta name="description" content="Таблицы стрельбы и превышений для стрелкового оружия">
+
+<!-- Icons -->
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+
+<!-- Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<title>Таблицы Стрельбы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#080a08;--s1:#101310;--s2:#161b16;--s3:#1e251e;
+  --border:#243024;--border2:#2e3d2e;
+  --acc:#4e8542;--acc2:#375e2d;--acc3:#264820;
+  --gold:#c49922;--gold2:#8a6a12;
+  --txt:#c6d3be;--dim:#5a6e52;--dim2:#3d4f37;
+  --pos:#5a9a4a;--neg:#c46050;--zer:#6a8060;
+  --hi:rgba(196,153,34,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{height:100%;}
+body{
+  font-family:'Barlow Condensed',sans-serif;
+  background:var(--bg);color:var(--txt);
+  min-height:100%;min-height:100dvh;
+  max-width:430px;margin:0 auto;
+  display:flex;flex-direction:column;
+  -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none;
+}
+
+/* ── INSTALL BANNER ── */
+#install-bar{
+  display:none;
+  background:var(--acc3);border-bottom:1px solid var(--acc2);
+  padding:8px 14px;
+  align-items:center;gap:10px;
+}
+#install-bar.show{display:flex;}
+#install-bar p{flex:1;font-size:12px;letter-spacing:.5px;color:var(--txt);line-height:1.4;}
+#install-bar button{
+  background:var(--acc);border:none;color:#fff;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;padding:6px 12px;border-radius:3px;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+}
+#install-bar .close-btn{
+  background:none;border:none;color:var(--dim);
+  font-size:18px;padding:4px;cursor:pointer;flex-shrink:0;
+  font-family:sans-serif;
+}
+
+/* ── OFFLINE TOAST ── */
+#offline-toast{
+  display:none;position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%);
+  background:var(--s3);border:1px solid var(--border2);
+  padding:8px 16px;border-radius:20px;
+  font-size:12px;letter-spacing:1px;color:var(--txt);
+  z-index:100;white-space:nowrap;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+}
+#offline-toast.show{display:block;}
+
+/* ── HEADER ── */
+header{
+  background:var(--s2);
+  border-bottom:1px solid var(--border);
+  padding:10px 15px 9px;
+  padding-top:calc(10px + env(safe-area-inset-top, 0px));
+  display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:10;
+}
+.logo{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.logo svg{width:24px;height:24px;}
+.hdr-text{}
+.hdr-title{font-size:17px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:var(--txt);line-height:1;}
+.hdr-sub{font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-top:1px;}
+.hdr-signal{
+  margin-left:auto;width:10px;height:10px;border-radius:50%;
+  background:var(--pos);flex-shrink:0;
+  box-shadow:0 0 6px rgba(90,154,74,.5);
+  transition:background .3s;
+}
+.hdr-signal.offline{background:var(--neg);box-shadow:0 0 6px rgba(196,96,80,.5);}
+
+/* ── CATEGORY TABS ── */
+.cat-nav{
+  display:flex;background:var(--s1);
+  border-bottom:1px solid var(--border);
+  position:sticky;z-index:9;
+}
+.cat-btn{
+  flex:1;padding:10px 0;background:none;border:none;
+  border-bottom:2px solid transparent;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--dim);
+  cursor:pointer;transition:color .15s,border-color .15s;
+}
+.cat-btn.active{color:var(--acc);border-bottom-color:var(--acc);}
+
+/* ── SELECTOR ── */
+.selector-wrap{
+  padding:10px 14px;background:var(--s1);
+  border-bottom:1px solid var(--border);
+}
+.sel-label{font-size:9px;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;margin-bottom:5px;}
+.weapon-sel{
+  width:100%;background:var(--s2);
+  border:1px solid var(--border2);
+  color:var(--txt);
+  font-family:'Barlow Condensed',sans-serif;
+  font-weight:700;font-size:17px;
+  padding:9px 34px 9px 12px;border-radius:3px;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234e8542'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+}
+
+/* ── INFO CARD ── */
+.info-card{
+  margin:11px 14px 0;padding:10px 12px;
+  background:var(--s2);border:1px solid var(--border);
+  border-left:3px solid var(--acc);border-radius:3px;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
+}
+.wname{font-size:23px;font-weight:900;letter-spacing:.5px;line-height:1;}
+.wfull{font-size:11px;color:var(--dim);margin-top:2px;letter-spacing:.5px;}
+.specs{display:flex;gap:14px;flex-shrink:0;}
+.spec{display:flex;flex-direction:column;align-items:flex-end;}
+.spec-l{font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;}
+.spec-v{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--gold);line-height:1.2;}
+
+/* ── TABLE TYPE TABS ── */
+.tbl-nav{
+  display:flex;margin:10px 14px 0;
+  border:1px solid var(--border2);border-radius:3px;overflow:hidden;
+}
+.tbl-btn{
+  flex:1;padding:8px 6px;background:var(--s1);border:none;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--dim);
+  cursor:pointer;transition:all .15s;
+}
+.tbl-btn.active{background:var(--acc3);color:var(--txt);}
+.tbl-btn+.tbl-btn{border-left:1px solid var(--border2);}
+
+/* ── NOTE ── */
+.tbl-note{font-size:10px;color:var(--dim);letter-spacing:.5px;margin:8px 14px 6px;line-height:1.5;}
+
+/* ── TABLE ── */
+.tbl-scroll{
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  padding:0 14px 20px;margin-top:8px;
+}
+.tbl-scroll::-webkit-scrollbar{height:3px;}
+.tbl-scroll::-webkit-scrollbar-track{background:var(--s1);}
+.tbl-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+table{border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:12.5px;}
+thead tr{background:var(--s3);}
+th{
+  padding:7px 10px;font-family:'Barlow Condensed',sans-serif;
+  font-size:10px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--acc);
+  white-space:nowrap;border-bottom:1px solid var(--acc3);
+  text-align:center;
+}
+td{
+  padding:7px 10px;text-align:center;
+  border-bottom:1px solid rgba(36,48,36,.7);
+  white-space:nowrap;color:var(--txt);
+}
+tr:nth-child(even) td{background:rgba(255,255,255,.018);}
+tr.hi-row td{background:var(--hi);}
+tr:active td{background:rgba(78,133,66,.1);}
+td:first-child{color:var(--gold);font-weight:700;}
+.pos{color:var(--pos);}
+.neg{color:var(--neg);}
+.zer{color:var(--zer);}
+.dsh{color:var(--dim2);}
+
+.content{flex:1;}
+.spacer{
+  height:calc(env(safe-area-inset-bottom, 12px) + 12px);
+  min-height:12px;
+}
+</style>
+</head>
+<body>
+
+<!-- Install banner (Android/Chrome) -->
+<div id="install-bar">
+  <p>Добавить на главный экран для работы офлайн</p>
+  <button id="install-btn">Установить</button>
+  <button class="close-btn" id="close-install">✕</button>
+</div>
+
+<!-- Offline toast -->
+<div id="offline-toast">⚡ Режим офлайн</div>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="5" stroke="#4e8542" stroke-width="1.4"/>
+      <circle cx="12" cy="12" r="2" stroke="#4e8542" stroke-width="1"/>
+      <line x1="12" y1="2"  x2="12" y2="6.5"  stroke="#4e8542" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="12" y1="17.5" x2="12" y2="22" stroke="#4e8542" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="2"  y1="12" x2="6.5"  y2="12" stroke="#4e8542" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="17.5" y1="12" x2="22" y2="12" stroke="#4e8542" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="12" cy="12" r="1.2" fill="#c49922"/>
+    </svg>
+  </div>
+  <div class="hdr-text">
+    <div class="hdr-title">Таблицы Стрельбы</div>
+    <div class="hdr-sub">Огневая подготовка · v2.0</div>
+  </div>
+  <div class="hdr-signal" id="signal-dot" title="Онлайн"></div>
+</header>
+
+<nav class="cat-nav" id="catNav">
+  <button class="cat-btn" data-cat="pistol">Пистолет</button>
+  <button class="cat-btn active" data-cat="auto">Автомат</button>
+  <button class="cat-btn" data-cat="rifle">Винтовка</button>
+</nav>
+
+<div class="selector-wrap">
+  <div class="sel-label">Образец</div>
+  <select class="weapon-sel" id="wSel"></select>
+</div>
+
+<div class="content" id="main"></div>
+<div class="spacer"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   BALLISTIC DATABASE
+═══════════════════════════════════════════════════════ */
+const DB = {
+
+pistol: [
+  {
+    id:'pya', name:'ПЯ', full:'Пистолет Ярыгина',
+    cal:'9×19 мм Пара', v0:'465', wt:'7.5',
+    fCols:['Д, м','Скор., м/с','Время, с','Снижение*, см','Снос 4 м/с, см'],
+    fNote:'* Снижение от линии вылета без учёта прицеливания',
+    fRows:[
+      [25,  449,'0.06', '−1',  1],
+      [50,  428,'0.12', '−4',  3],
+      [75,  407,'0.19', '−11', 6],
+      [100, 388,'0.26', '−23', 10],
+      [150, 350,'0.42', '−63', 23],
+      [200, 315,'0.61', '−141',41],
+    ],
+    eCols:['Нулевая','25 м','50 м','75 м','100 м','150 м','200 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['25 м', '0',  '−2', '−9',  '−22', '−63', '—'],
+      ['50 м', '+3', '0',  '−6',  '−19', '−60', '—'],
+      ['100 м','+9', '+11','0',   '−7',  '−40', '−118'],
+    ]
+  },
+  {
+    id:'glock17', name:'Glock 17', full:'Glock 17 Gen.5',
+    cal:'9×19 мм Пара', v0:'375', wt:'8.0',
+    fCols:['Д, м','Скор., м/с','Время, с','Снижение*, см','Снос 4 м/с, см'],
+    fNote:'* Снижение от линии вылета без учёта прицеливания',
+    fRows:[
+      [25,  353,'0.07', '−1',  2],
+      [50,  332,'0.15', '−5',  5],
+      [75,  312,'0.24', '−15', 10],
+      [100, 293,'0.33', '−32', 17],
+      [150, 260,'0.54', '−89', 38],
+      [200, 231,'0.77', '−197',71],
+    ],
+    eCols:['Нулевая','25 м','50 м','75 м','100 м','150 м','200 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['25 м', '0',  '−3', '−12', '−28', '−68', '—'],
+      ['50 м', '+3', '0',  '−7',  '−24', '−62', '—'],
+      ['100 м','+4', '+11','0',   '−8',  '−47', '−153'],
+    ]
+  },
+  {
+    id:'glock19', name:'Glock 19', full:'Glock 19 Gen.5',
+    cal:'9×19 мм Пара', v0:'370', wt:'8.0',
+    fCols:['Д, м','Скор., м/с','Время, с','Снижение*, см','Снос 4 м/с, см'],
+    fNote:'* Снижение от линии вылета без учёта прицеливания',
+    fRows:[
+      [25,  348,'0.07', '−1',  2],
+      [50,  327,'0.15', '−5',  5],
+      [75,  307,'0.24', '−16', 11],
+      [100, 289,'0.34', '−33', 18],
+      [150, 256,'0.55', '−93', 41],
+      [200, 227,'0.79', '−205',76],
+    ],
+    eCols:['Нулевая','25 м','50 м','75 м','100 м','150 м','200 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['25 м', '0',  '−3', '−13', '−29', '−70', '—'],
+      ['50 м', '+3', '0',  '−8',  '−25', '−65', '—'],
+      ['100 м','+5', '+11','0',   '−8',  '−49', '−158'],
+    ]
+  },
+],
+
+auto: [
+  {
+    id:'ak74m', name:'АК-74М', full:'Автомат Калашникова АК-74М',
+    cal:'5,45×39 мм (7Н6М)', v0:'900', wt:'3.4',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'',
+    fRows:[
+      ['1',   100, '5.8',  794,'0.12', 4],
+      ['2',   200, '10.2', 701,'0.25', 11],
+      ['3',   300, '15.5', 617,'0.41', 24],
+      ['4',   400, '21.9', 541,'0.59', 43],
+      ['П',   440, '24.8', 516,'0.65', 52,true],
+      ['5',   500, '30.1', 476,'0.80', 68],
+      ['6',   600, '40.6', 419,'1.03', 103],
+      ['7',   700, '53.2', 370,'1.30', 152],
+      ['8',   800, '68.5', 330,'1.62', 217],
+      ['9',   900, '87.0', 297,'1.99', 302],
+      ['10', 1000,'109.6', 270,'2.41', 408],
+    ],
+    eCols:['Пр.','100 м','200 м','300 м','400 м','500 м','600 м','700 м','800 м','900 м','1000 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['1',  '0',  '—',  '—',  '—',  '—',  '—',  '—',  '—',  '—',  '—'],
+      ['2',  '+8', '0',  '—',  '—',  '—',  '—',  '—',  '—',  '—',  '—'],
+      ['3',  '+12','+18','0',  '—',  '—',  '—',  '—',  '—',  '—',  '—'],
+      ['4',  '+17','+27','+19','0',  '—',  '—',  '—',  '—',  '—',  '—'],
+      ['П',  '+21','+33','+27','+9', '−3', '—',  '—',  '—',  '—',  '—',true],
+      ['5',  '+24','+39','+35','+19','0',  '—',  '—',  '—',  '—',  '—'],
+      ['6',  '+28','+47','+48','+37','+14','0',  '—',  '—',  '—',  '—'],
+      ['7',  '+31','+54','+60','+55','+36','+4', '0',  '—',  '—',  '—'],
+      ['8',  '+34','+60','+72','+72','+57','+27','−8', '0',  '—',  '—'],
+      ['9',  '+36','+65','+82','+88','+77','+50','+15','−18','0',  '—'],
+      ['10', '+38','+70','+92','+103','+96','+74','+43','+5','−33','0'],
+    ]
+  },
+  {
+    id:'aksu', name:'АКСУ', full:'АКС-74У (АКСУ)',
+    cal:'5,45×39 мм (7Н6М)', v0:'735', wt:'3.4',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'Эфф. дальность огня — до 400–500 м',
+    fRows:[
+      ['1', 100, '8.2',  629,'0.15', 7],
+      ['2', 200, '15.6', 540,'0.32', 20],
+      ['3', 300, '25.4', 463,'0.54', 43],
+      ['4', 400, '38.6', 399,'0.81', 78],
+      ['5', 500, '56.5', 345,'1.13', 130],
+    ],
+    eCols:['Пр.','100 м','200 м','300 м','400 м','500 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['1', '0',   '—',  '—',  '—',  '—'],
+      ['2', '+10', '0',  '—',  '—',  '—'],
+      ['3', '+15', '+23','0',  '—',  '—'],
+      ['4', '+19', '+31','+25','0',  '—'],
+      ['5', '+22', '+38','+38','+19','0'],
+    ]
+  },
+  {
+    id:'ak12_545', name:'АК-12 (5,45)', full:'АК-12, калибр 5,45×39',
+    cal:'5,45×39 мм (7Н6М)', v0:'900', wt:'3.4',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'',
+    fRows:[
+      ['1',   100, '5.7',  797,'0.12', 4],
+      ['2',   200, '10.0', 703,'0.25', 11],
+      ['3',   300, '15.3', 619,'0.40', 24],
+      ['4',   400, '21.6', 543,'0.58', 43],
+      ['П',   440, '24.5', 518,'0.65', 51,true],
+      ['5',   500, '29.8', 478,'0.79', 67],
+      ['6',   600, '40.2', 421,'1.02', 102],
+      ['7',   700, '52.8', 372,'1.29', 151],
+      ['8',   800, '68.0', 332,'1.61', 215],
+      ['9',   900, '86.4', 299,'1.98', 299],
+      ['10', 1000,'108.8', 272,'2.40', 404],
+    ],
+    eCols:['Пр.','100 м','200 м','300 м','400 м','500 м','600 м','700 м','800 м','900 м','1000 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['1',  '0',  '—',  '—',  '—',  '—',  '—', '—', '—', '—', '—'],
+      ['2',  '+8', '0',  '—',  '—',  '—',  '—', '—', '—', '—', '—'],
+      ['3',  '+12','+18','0',  '—',  '—',  '—', '—', '—', '—', '—'],
+      ['4',  '+16','+26','+18','0',  '—',  '—', '—', '—', '—', '—'],
+      ['П',  '+20','+32','+26','+8', '−4', '—', '—', '—', '—', '—',true],
+      ['5',  '+23','+38','+34','+18','0',  '—', '—', '—', '—', '—'],
+      ['6',  '+27','+46','+47','+36','+13','0', '—', '—', '—', '—'],
+      ['7',  '+30','+53','+59','+54','+35','+3','0', '—', '—', '—'],
+      ['8',  '+33','+59','+71','+71','+56','+26','−9','0', '—', '—'],
+      ['9',  '+35','+64','+81','+87','+76','+48','+13','−19','0','—'],
+      ['10', '+37','+69','+91','+102','+95','+72','+41','+3','−35','0'],
+    ]
+  },
+  {
+    id:'ak12_762', name:'АК-12 (7,62)', full:'АК-12, калибр 7,62×39',
+    cal:'7,62×39 мм (57-Н-231С)', v0:'715', wt:'7.9',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'',
+    fRows:[
+      ['1', 100, '7.5',  623,'0.14', 6],
+      ['2', 200, '14.0', 536,'0.30', 16],
+      ['3', 300, '22.8', 461,'0.50', 34],
+      ['4', 400, '34.8', 398,'0.75', 61],
+      ['5', 500, '51.2', 344,'1.05', 102],
+      ['6', 600, '72.5', 301,'1.40', 161],
+    ],
+    eCols:['Пр.','100 м','200 м','300 м','400 м','500 м','600 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['1', '0',   '—',  '—',  '—',  '—',  '—'],
+      ['2', '+11', '0',  '—',  '—',  '—',  '—'],
+      ['3', '+17', '+26','0',  '—',  '—',  '—'],
+      ['4', '+21', '+37','+28','0',  '—',  '—'],
+      ['5', '+25', '+45','+44','+18','0',   '—'],
+      ['6', '+27', '+51','+57','+39','+12', '0'],
+    ]
+  },
+  {
+    id:'pkm', name:'ПКМ', full:'Пулемёт Калашникова модернизированный',
+    cal:'7,62×54R мм (Т-46М / ЛПС)', v0:'825', wt:'9.6',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'',
+    fRows:[
+      ['2',   200, '6.0',  747,'0.25', 7],
+      ['4',   400, '14.0', 644,'0.52', 20],
+      ['6',   600, '24.9', 554,'0.83', 40],
+      ['8',   800, '39.0', 476,'1.18', 71],
+      ['10', 1000, '57.5', 410,'1.58', 116],
+      ['12', 1200, '82.0', 356,'2.04', 181],
+      ['14', 1400,'114.0', 311,'2.56', 272],
+      ['15', 1500,'133.5', 293,'2.84', 326],
+    ],
+    eCols:['Пр.','200 м','400 м','600 м','800 м','1000 м','1200 м','1400 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['2',  '0',   '—',  '—',  '—',  '—',   '—',  '—'],
+      ['4',  '+21', '0',  '—',  '—',  '—',   '—',  '—'],
+      ['6',  '+32', '+32','0',  '—',  '—',   '—',  '—'],
+      ['8',  '+39', '+51','+33','0',  '—',   '—',  '—'],
+      ['10', '+44', '+65','+60','+29','0',   '—',  '—'],
+      ['12', '+47', '+76','+84','+60','+27', '0',  '—'],
+      ['14', '+50', '+84','+104','+90','+60','+27','0'],
+    ]
+  },
+  {
+    id:'as_val', name:'АС «Вал»', full:'Автомат специальный АС «Вал»',
+    cal:'9×39 мм (СП-6)', v0:'290', wt:'16.2',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'Дозвуковая пуля — очень крутая траектория!',
+    fRows:[
+      ['1', 100, '6.5',  272,'0.36', 6],
+      ['2', 200, '12.8', 254,'0.74', 20],
+      ['3', 300, '19.8', 237,'1.16', 50],
+      ['4', 400, '27.5', 222,'1.61', 92],
+    ],
+    eCols:['Пр.','50 м','100 м','150 м','200 м','300 м','400 м'],
+    eNote:'ВНИМАНИЕ: траектория значительно выгнута. Превышение (+) / снижение (−) над ЛП, см',
+    eRows:[
+      ['1', '+6',   '0',    '−25',  '−83',  '—',    '—'],
+      ['2', '+24',  '+67',  '+60',  '0',    '−226', '—'],
+      ['3', '+36',  '+131', '+165', '+148', '0',    '—'],
+      ['4', '+46',  '+176', '+256', '+321', '+236', '0'],
+    ]
+  },
+  {
+    id:'vss', name:'ВСС «Винторез»', full:'Снайперская вин. специальная ВСС «Винторез»',
+    cal:'9×39 мм (СП-5/СП-6)', v0:'290', wt:'16.2',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'Дозвуковая пуля — очень крутая траектория!',
+    fRows:[
+      ['1', 100, '6.5',  272,'0.36', 6],
+      ['2', 200, '12.8', 254,'0.74', 20],
+      ['3', 300, '19.8', 237,'1.16', 50],
+      ['4', 400, '27.5', 222,'1.61', 92],
+    ],
+    eCols:['Пр.','50 м','100 м','150 м','200 м','300 м','400 м'],
+    eNote:'ВНИМАНИЕ: траектория значительно выгнута. Превышение (+) / снижение (−) над ЛП, см',
+    eRows:[
+      ['1', '+6',   '0',    '−25',  '−83',  '—',    '—'],
+      ['2', '+23',  '+66',  '+59',  '0',    '−228', '—'],
+      ['3', '+35',  '+130', '+164', '+147', '0',    '—'],
+      ['4', '+45',  '+175', '+254', '+319', '+235', '0'],
+    ]
+  },
+  {
+    id:'sd', name:'СД (СР-3 «Вихрь»)', full:'Специальный десантный СР-3 «Вихрь»',
+    cal:'9×39 мм (СП-6)', v0:'295', wt:'16.2',
+    fCols:['Пр.','Д, м','Угол, тыс.','Скор., м/с','Время, с','Снос 4 м/с, см'],
+    fNote:'Дозвуковая пуля — очень крутая траектория!',
+    fRows:[
+      ['1', 100, '6.3',  277,'0.35', 6],
+      ['2', 200, '12.5', 259,'0.73', 19],
+      ['3', 300, '19.5', 243,'1.14', 48],
+      ['4', 400, '27.0', 228,'1.58', 89],
+    ],
+    eCols:['Пр.','50 м','100 м','150 м','200 м','300 м','400 м'],
+    eNote:'ВНИМАНИЕ: траектория значительно выгнута. Превышение (+) / снижение (−) над ЛП, см',
+    eRows:[
+      ['1', '+6',   '0',    '−24',  '−81',  '—',    '—'],
+      ['2', '+23',  '+65',  '+58',  '0',    '−221', '—'],
+      ['3', '+35',  '+128', '+162', '+145', '0',    '—'],
+      ['4', '+44',  '+172', '+251', '+315', '+230', '0'],
+    ]
+  },
+],
+
+rifle: [
+  {
+    id:'mannl308', name:'Mannlicher .308', full:'Mannlicher Pro Hunter / Classic .308 Win',
+    cal:'.308 Win / 7,62×51 мм', v0:'800', wt:'11.3',
+    fCols:['Д, м','Попр. высоты, тыс.','Скор., м/с','Время, с','Снос 10 м/с, см','Снос 10 м/с, тыс.'],
+    fNote:'Поправка высоты — от нуля 100 м. Снос — боковой ветер 10 м/с',
+    fRows:[
+      [100,  '0.0',  756,'0.13',  2,'0.2'],
+      [200,  '1.3',  715,'0.26',  6,'0.3'],
+      [300,  '3.2',  675,'0.41', 14,'0.5'],
+      [400,  '5.8',  637,'0.57', 25,'0.6'],
+      [500,  '9.2',  601,'0.74', 40,'0.8'],
+      [600, '13.5',  567,'0.93', 59,'1.0'],
+      [700, '18.8',  535,'1.13', 83,'1.2'],
+      [800, '25.2',  504,'1.34',112,'1.4'],
+      [900, '33.0',  476,'1.58',146,'1.6'],
+      [1000,'42.1',  449,'1.83',186,'1.9'],
+    ],
+    eCols:['Нулевая','100 м','200 м','300 м','400 м','500 м','600 м','800 м','1000 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['100 м', '0',   '−12','−38', '−83', '−153','−254','−560','−1005'],
+      ['200 м', '+5',  '0',  '−14', '−49', '−109','−202','−488', '−920'],
+      ['300 м', '+11', '+18','0',   '−24', '−74', '−160','−430', '−848'],
+      ['500 м', '+28', '+49','+46', '+19', '0',   '−59', '−285', '−683'],
+    ]
+  },
+  {
+    id:'mannl338', name:'Mannlicher .338', full:'Mannlicher Pro Hunter .338 Lapua Mag',
+    cal:'.338 Lapua Magnum', v0:'900', wt:'16.2',
+    fCols:['Д, м','Попр. высоты, тыс.','Скор., м/с','Время, с','Снос 10 м/с, см','Снос 10 м/с, тыс.'],
+    fNote:'Поправка высоты — от нуля 100 м. Снос — боковой ветер 10 м/с',
+    fRows:[
+      [100,  '0.0',  868,'0.11',  1,'0.1'],
+      [200,  '0.9',  837,'0.23',  3,'0.1'],
+      [300,  '2.2',  807,'0.35',  7,'0.2'],
+      [400,  '3.8',  778,'0.48', 12,'0.3'],
+      [500,  '5.9',  750,'0.61', 19,'0.4'],
+      [600,  '8.4',  723,'0.75', 28,'0.5'],
+      [700, '11.4',  696,'0.90', 40,'0.6'],
+      [800, '14.9',  671,'1.06', 54,'0.7'],
+      [900, '19.0',  647,'1.22', 71,'0.8'],
+      [1000,'23.7',  623,'1.40', 91,'0.9'],
+      [1200,'35.0',  578,'1.77',140,'1.2'],
+      [1500,'59.0',  515,'2.37',237,'1.6'],
+    ],
+    eCols:['Нулевая','100 м','200 м','300 м','500 м','700 м','1000 м','1200 м','1500 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['100 м',  '0',   '−7',  '−24',  '−82',  '−195',  '−504',  '−810', '−1546'],
+      ['200 м',  '+4',  '0',   '−10',  '−57',  '−162',  '−460',  '−760', '−1490'],
+      ['300 м',  '+8',  '+9',  '0',    '−36',  '−130',  '−417',  '−712', '−1436'],
+      ['500 м',  '+18', '+28', '+24',  '0',    '−65',   '−328',  '−616', '−1333'],
+      ['1000 м', '+43', '+71', '+78',  '+51',  '0',     '−144',  '0',    '−624'],
+    ]
+  },
+  {
+    id:'orsis338', name:'Orsis .338', full:'ORSIS T-5000 .338 Lapua Mag',
+    cal:'.338 Lapua Magnum', v0:'920', wt:'16.2',
+    fCols:['Д, м','Попр. высоты, тыс.','Скор., м/с','Время, с','Снос 10 м/с, см','Снос 10 м/с, тыс.'],
+    fNote:'Поправка высоты — от нуля 100 м. Снос — боковой ветер 10 м/с',
+    fRows:[
+      [100,  '0.0',  887,'0.11',  1,'0.1'],
+      [200,  '0.8',  855,'0.22',  3,'0.1'],
+      [300,  '2.1',  824,'0.34',  6,'0.2'],
+      [400,  '3.6',  794,'0.47', 11,'0.3'],
+      [500,  '5.6',  765,'0.60', 17,'0.3'],
+      [600,  '7.9',  737,'0.74', 25,'0.4'],
+      [700, '10.7',  710,'0.88', 36,'0.5'],
+      [800, '14.0',  684,'1.04', 49,'0.6'],
+      [900, '17.8',  659,'1.20', 64,'0.7'],
+      [1000,'22.2',  635,'1.37', 82,'0.8'],
+      [1200,'32.8',  589,'1.73',126,'1.1'],
+      [1500,'54.8',  527,'2.31',213,'1.4'],
+    ],
+    eCols:['Нулевая','100 м','200 м','300 м','500 м','700 м','1000 м','1200 м','1500 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['100 м',  '0',   '−7',  '−22',  '−78',  '−183',  '−474',  '−761', '−1449'],
+      ['200 м',  '+3',  '0',   '−9',   '−53',  '−151',  '−431',  '−712', '−1394'],
+      ['300 м',  '+7',  '+9',  '0',    '−33',  '−121',  '−391',  '−667', '−1342'],
+      ['500 м',  '+16', '+25', '+21',  '0',    '−60',   '−307',  '−576', '−1244'],
+      ['1000 м', '+38', '+64', '+70',  '+45',  '0',     '−132',  '0',    '−580'],
+    ]
+  },
+  {
+    id:'orsis375', name:'Orsis .375', full:'ORSIS T-5000 .375 CheyTac',
+    cal:'.375 CheyTac', v0:'945', wt:'22.7',
+    fCols:['Д, м','Попр. высоты, тыс.','Скор., м/с','Время, с','Снос 10 м/с, см','Снос 10 м/с, тыс.'],
+    fNote:'Поправка высоты — от нуля 100 м. Снос — боковой ветер 10 м/с',
+    fRows:[
+      [100,  '0.0',  921,'0.11',  0,'0.0'],
+      [200,  '0.6',  897,'0.22',  1,'0.1'],
+      [300,  '1.6',  874,'0.34',  3,'0.1'],
+      [400,  '2.8',  851,'0.46',  5,'0.1'],
+      [500,  '4.3',  828,'0.58',  8,'0.2'],
+      [600,  '6.0',  806,'0.72', 13,'0.2'],
+      [700,  '8.1',  785,'0.86', 18,'0.3'],
+      [800, '10.5',  764,'1.00', 25,'0.3'],
+      [900, '13.3',  744,'1.15', 33,'0.4'],
+      [1000,'16.4',  724,'1.31', 42,'0.4'],
+      [1200,'24.0',  686,'1.64', 64,'0.5'],
+      [1500,'39.6',  630,'2.17',108,'0.7'],
+      [1800,'60.0',  578,'2.76',172,'1.0'],
+      [2000,'76.0',  547,'3.17',223,'1.1'],
+    ],
+    eCols:['Нулевая','100 м','300 м','500 м','700 м','1000 м','1200 м','1500 м','2000 м'],
+    eNote:'Превышение (+) / снижение (−) траектории над линией прицеливания, см',
+    eRows:[
+      ['100 м',  '0',   '−14', '−54',  '−130', '−345',  '−549', '−1031','−2094'],
+      ['300 м',  '+6',  '0',   '−23',  '−83',  '−278',  '−474', '−943', '−1992'],
+      ['500 м',  '+13', '+18', '0',    '−44',  '−218',  '−405', '−862', '−1901'],
+      ['1000 м', '+30', '+45', '+40',  '0',    '−120',  '0',    '−406', '−1378'],
+    ]
+  },
+],
+
+}; // end DB
+
+/* ═══════════════════════════════════════════════════════
+   APP LOGIC
+═══════════════════════════════════════════════════════ */
+let state = { cat:'auto', id:'ak74m', tbl:'fire' };
+function getW(){ return DB[state.cat].find(w=>w.id===state.id)||DB[state.cat][0]; }
+
+function setCat(c){
+  state.cat=c; state.id=DB[c][0].id; state.tbl='fire';
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.toggle('active',b.dataset.cat===c));
+  rebuildSel(); render();
+}
+function rebuildSel(){
+  const s=document.getElementById('wSel');
+  s.innerHTML=DB[state.cat].map(w=>`<option value="${w.id}">${w.name} — ${w.cal}</option>`).join('');
+  s.value=state.id;
+}
+function cv(v){
+  const s=String(v);
+  if(s==='—') return '<span class="dsh">—</span>';
+  if(s==='0') return '<span class="zer">0</span>';
+  if(s.charAt(0)==='+') return '<span class="pos">'+s+'</span>';
+  if(s.charAt(0)==='−'||s.charAt(0)==='-') return '<span class="neg">'+s+'</span>';
+  return s;
+}
+function render(){
+  const w=getW();
+  const rows = state.tbl==='fire' ? w.fRows : w.eRows;
+  const cols = state.tbl==='fire' ? w.fCols : w.eCols;
+  const note = state.tbl==='fire' ? w.fNote : w.eNote;
+  let h='';
+  h+=`<div class="info-card">
+    <div>
+      <div class="wname">${w.name}</div>
+      <div class="wfull">${w.full}</div>
+    </div>
+    <div class="specs">
+      <div class="spec"><span class="spec-l">v₀</span><span class="spec-v">${w.v0}&thinsp;м/с</span></div>
+      <div class="spec"><span class="spec-l">Пуля</span><span class="spec-v">${w.wt}&thinsp;г</span></div>
+    </div>
+  </div>
+  <div class="tbl-nav">
+    <button class="tbl-btn${state.tbl==='fire'?' active':''}" onclick="setTbl('fire')">Таблица стрельбы</button>
+    <button class="tbl-btn${state.tbl==='elev'?' active':''}" onclick="setTbl('elev')">Таблица превышений</button>
+  </div>`;
+  if(note) h+=`<div class="tbl-note">${note}</div>`;
+  h+=`<div class="tbl-scroll"><table><thead><tr>`;
+  cols.forEach(c=>h+=`<th>${c}</th>`);
+  h+=`</tr></thead><tbody>`;
+  rows.forEach(row=>{
+    const hi=row[row.length-1]===true;
+    const cells=hi?row.slice(0,-1):row;
+    h+=`<tr${hi?' class="hi-row"':''}>`;
+    cells.forEach((cell,i)=>{
+      h+=i===0?`<td>${cv(cell)}</td>`:`<td>${cv(String(cell))}</td>`;
+    });
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  document.getElementById('main').innerHTML=h;
+}
+function setTbl(t){ state.tbl=t; render(); }
+
+// Init
+document.querySelectorAll('.cat-btn').forEach(b=>b.addEventListener('click',()=>setCat(b.dataset.cat)));
+document.getElementById('wSel').addEventListener('change',function(){ state.id=this.value; render(); });
+rebuildSel();
+render();
+
+/* ═══════════════════════════════════════════════════════
+   PWA: SERVICE WORKER
+═══════════════════════════════════════════════════════ */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered, scope:', reg.scope))
+      .catch(err => console.warn('SW registration failed:', err));
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
+   PWA: INSTALL PROMPT (Android/Chrome)
+═══════════════════════════════════════════════════════ */
+let deferredPrompt = null;
+const installBar  = document.getElementById('install-bar');
+const installBtn  = document.getElementById('install-btn');
+const closeBtn    = document.getElementById('close-install');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBar.classList.add('show');
+});
+installBtn.addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBar.classList.remove('show');
+});
+closeBtn.addEventListener('click', () => installBar.classList.remove('show'));
+window.addEventListener('appinstalled', () => installBar.classList.remove('show'));
+
+/* ═══════════════════════════════════════════════════════
+   PWA: ONLINE/OFFLINE INDICATOR
+═══════════════════════════════════════════════════════ */
+const dot   = document.getElementById('signal-dot');
+const toast = document.getElementById('offline-toast');
+let toastTimer;
+
+function setOnline(online){
+  dot.classList.toggle('offline', !online);
+  dot.title = online ? 'Онлайн' : 'Офлайн';
+  if(!online){
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toast.classList.remove('show'), 3000);
+  } else {
+    toast.classList.remove('show');
+  }
+}
+window.addEventListener('online',  ()=>setOnline(true));
+window.addEventListener('offline', ()=>setOnline(false));
+setOnline(navigator.onLine);
+</script>
+</body>
+</html>
